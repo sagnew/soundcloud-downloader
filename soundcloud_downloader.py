@@ -29,9 +29,9 @@ def download_track(track_url):
 
 
 def download_artist(username):
-    artist_url = 'http://soundcloud.com/{}'.format(username)
+    user_url = 'http://soundcloud.com/{}'.format(username)
     resolved_data = soundcloud_client.get('/resolve',
-                                          url=artist_url,
+                                          url=user_url,
                                           allow_redirects=False)
 
     user_resource = soundcloud_client.get(resolved_data.obj['location'])
@@ -47,9 +47,30 @@ def download_artist(username):
             print('Problem downloading {}'.format(track.obj['title']))
 
 
+def download_favorites(username):
+    user_url = 'http://soundcloud.com/{}'.format(username)
+    resolved_data = soundcloud_client.get('/resolve',
+                                          url=user_url,
+                                          allow_redirects=False)
+
+    user_resource = soundcloud_client.get(resolved_data.obj['location'])
+    user_favorites_resource = '/users/{}/favorites'.format(user_resource.obj['id'])
+    user_favorites = soundcloud_client.get(user_favorites_resource)
+
+    for track in user_favorites:
+        print('Downloading: {}'.format(track.obj['title']))
+
+        try:
+            download_track(track.obj['permalink_url'])
+        except:
+            print('Problem downloading {}'.format(track.obj['title']))
+
+
 if __name__ == '__main__':
     if sys.argv[1] == 'track':
         download_track(sys.argv[1])
     elif sys.argv[1] == 'artist':
         download_artist(sys.argv[2])
+    elif sys.argv[1] == 'favorites':
+        download_favorites(sys.argv[2])
 
