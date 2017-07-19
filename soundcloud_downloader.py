@@ -8,6 +8,16 @@ import soundcloud
 soundcloud_client = soundcloud.Client(client_id=os.environ['SOUNDCLOUD_ID'])
 
 
+def get_user_object(username):
+    user_url = 'http://soundcloud.com/{}'.format(username)
+    resolved_data = soundcloud_client.get('/resolve',
+                                          url=user_url,
+                                          allow_redirects=False)
+    user_resource = soundcloud_client.get(resolved_data.obj['location'])
+
+    return user_resource.obj
+
+
 def download_track(track_url):
     resolved_data = soundcloud_client.get('/resolve',
                                           url=track_url, allow_redirects=False)
@@ -28,42 +38,31 @@ def download_track(track_url):
         f.write(requests.get(stream_url.location).content)
 
 
-def download_artist(username):
-    user_url = 'http://soundcloud.com/{}'.format(username)
-    resolved_data = soundcloud_client.get('/resolve',
-                                          url=user_url,
-                                          allow_redirects=False)
-
-    user_resource = soundcloud_client.get(resolved_data.obj['location'])
-    user_tracks_resource = '/users/{}/tracks'.format(user_resource.obj['id'])
-    user_tracks = soundcloud_client.get(user_tracks_resource)
-
-    for track in user_tracks:
+def download_tracks(tracks):
+    for track in tracks:
         print('Downloading: {}'.format(track.obj['title']))
 
         try:
             download_track(track.obj['permalink_url'])
         except:
             print('Problem downloading {}'.format(track.obj['title']))
+
+
+def download_artist(username):
+    user = get_user_object(username)
+    user_tracks_resource = '/users/{}/tracks'.format(user['id'])
+    user_tracks = soundcloud_client.get(user_tracks_resource)
+
+    download_tracks(user_tracks)
 
 
 def download_favorites(username):
-    user_url = 'http://soundcloud.com/{}'.format(username)
-    resolved_data = soundcloud_client.get('/resolve',
-                                          url=user_url,
-                                          allow_redirects=False)
+    user = get_user_object(username)
 
-    user_resource = soundcloud_client.get(resolved_data.obj['location'])
-    user_favorites_resource = '/users/{}/favorites'.format(user_resource.obj['id'])
+    user_favorites_resource = '/users/{}/favorites'.format(user['id'])
     user_favorites = soundcloud_client.get(user_favorites_resource)
 
-    for track in user_favorites:
-        print('Downloading: {}'.format(track.obj['title']))
-
-        try:
-            download_track(track.obj['permalink_url'])
-        except:
-            print('Problem downloading {}'.format(track.obj['title']))
+    download_tracks(user_favorites)
 
 
 if __name__ == '__main__':
